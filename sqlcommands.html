@@ -1,0 +1,191 @@
+
+#--. Create Database if it doesn't exist
+    This is the database where all the tables will be created
+    and where the application will interact with the data.
+
+CREATE DATABASE IF NOT EXISTS paws_hearts;   //database created
+
+
+#--. Updated Users Table to match your existing structure
+
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,                               // user table created
+    password VARCHAR(255) NOT NULL,
+    role ENUM('adopter', 'shelter', 'admin') DEFAULT 'adopter',
+    profile_pic VARCHAR(255) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+#--. Insert a default admin for testing purposes
+     Password is 'admin123' (hashed using BCRYPT)
+
+INSERT INTO users (first_name, last_name, email, password, role)
+VALUES ('System', 'Admin', 'admin@test.com', '$2y$10$8S8lY8.T9Rj5.R1kQW/R2.R1kQW/R2.R1kQW/R2.R1kQW/R2', 'admin')
+ON DUPLICATE KEY UPDATE email=email;
+
+
+
+#--. Insert a sample user for testing purposes
+
+INSERT INTO users (first_name, last_name, email, password)
+VALUES ('Arafat', 'Khan', 'arafat@gmail.com', '123456789');
+
+
+
+
+#--. Create the Pets Table with Relation to the Users Table
+     This table will store information about pets available for adoption
+     It includes foreign key constraints to link each pet to its owner/shelter user.
+
+CREATE TABLE pets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,   -- admin / adopter / shelter user id
+    name VARCHAR(50) NOT NULL,
+    age VARCHAR(20),
+    species VARCHAR(30),
+    breed VARCHAR(50),
+    size VARCHAR(20),
+    gender VARCHAR(10),
+    image_url TEXT,
+    about TEXT,
+    health VARCHAR(50),
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_pet_user
+    FOREIGN KEY (user_id)
+    REFERENCES users(id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+);
+
+
+
+#--. Insert sample pets for testing purposes
+     These pets are owned by the user with id 1 (the sample user created above).
+     You can change the user_id to match the id of any user in your database.
+     You can also add more pets with different attributes and images.
+INSERT INTO pets
+(user_id, name, age, species, breed, size, gender, image_url, about)
+VALUES
+(106, 'Max', '3 Years', 'Dog', 'Golden Retriever', 'Large', 'Male',
+'https://images.unsplash.com/photo-1633722715463-d30f4f325e24',
+'Max is the definition of a Good Boy. He loves tennis balls, swimming, and is gentle with children.'),
+
+(106, 'Luna', '2 Years', 'Cat', 'Persian', 'Medium', 'Female',
+'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba',
+'Luna prefers a quiet home. She is an indoor cat and needs daily brushing.'),
+
+(106, 'Charlie', '1 Year', 'Dog', 'Beagle', 'Medium', 'Male',
+'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8',
+'Charlie loves tracking scents and needs a secure backyard.'),
+
+(106, 'Bella', '4 Years', 'Cat', 'Siamese', 'Small', 'Female',
+'https://images.unsplash.com/photo-1513245543132-31f507417b26',
+'Bella is vocal and follows her humans everywhere.'),
+
+(106, 'Daisy', '1 Year', 'Rabbit', 'Holland Lop', 'Small', 'Female',
+'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308',
+'Daisy is litter trained and loves cilantro.'),
+
+(106, 'Rocky', '5 Years', 'Dog', 'Bulldog', 'Medium', 'Male',
+'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e',
+'Rocky is a calm dog who loves cuddles.'),
+
+(106, 'Milo', '3 Years', 'Cat', 'Maine Coon', 'Large', 'Male',
+'https://images.unsplash.com/photo-1533738363-b7f9aef128ce',
+'Milo is a gentle giant and gets along with dogs.'),
+
+(106, 'Coco', '2 Years', 'Rabbit', 'Mini Rex', 'Small', 'Female',
+'https://images.unsplash.com/photo-1518717758536-85ae29035b6d',
+'Coco is shy but warms up with treats.'),
+
+(106, 'Lucy', '2 Years', 'Dog', 'Labrador', 'Large', 'Female',
+'https://images.unsplash.com/photo-1548199973-03cce0bbc87b',
+'Lucy loves fetch, food, and water.'),
+
+(106, 'Leo', '4 Years', 'Cat', 'British Shorthair', 'Medium', 'Male',
+'https://images.unsplash.com/photo-1592194996308-7b43878e84a6',
+'Leo is independent and likes quiet spaces.');
+
+
+
+
+#--. Create the messages table with Relation to the Users Table
+     This table will store the chat messages between users
+     It includes foreign key constraints to ensure data integrity
+     and indexing for faster lookups when loading chat history.
+
+CREATE TABLE IF NOT EXISTS messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sender_id INT NOT NULL,
+    receiver_id INT NOT NULL,
+    message_text TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_read TINYINT(1) DEFAULT 0,
+    
+    -- Foreign Key Constraints: 
+    -- This ensures that if a user is deleted, their messages are also handled.
+    -- It also prevents messages from being sent to non-existent user IDs.
+    CONSTRAINT fk_sender FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_receiver FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Indexing for faster lookups when loading chat history
+    INDEX (sender_id),
+    INDEX (receiver_id)
+);
+
+
+
+
+#--. Insert Sample Test Users for Messaging
+     Creating a shelter user and an adopter user to test the messaging system
+     Password for both is 'password123'
+
+INSERT IGNORE INTO users (id, first_name, last_name, email, password, role) 
+VALUES 
+(100, 'Happy Paws', 'Shelter', 'shelter@test.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'shelter'),
+(101, 'John', 'Doe', 'john@test.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'adopter');
+
+
+Login: john@test.com / password123
+
+
+
+#--. Insert Sample Messages Between Shelter and Adopter
+     These messages create a conversation thread that will appear in the Messages page
+     You can test the messaging system by logging in as either user
+
+INSERT INTO messages (sender_id, receiver_id, message_text, created_at, is_read) VALUES
+(101, 100, 'Hi! I saw your cute puppy listing. Is it still available?', '2026-01-19 10:00:00', 1),
+(100, 101, 'Yes, Buddy is still available! Would you like to schedule a visit?', '2026-01-19 10:05:00', 1),
+(101, 100, 'That would be great! What days work for you?', '2026-01-19 10:10:00', 1),
+(100, 101, 'We are open Tuesday-Saturday, 9am-5pm. Any of those days work?', '2026-01-19 10:15:00', 1),
+(101, 100, 'Perfect! Can I come by on Wednesday at 2pm?', '2026-01-19 10:20:00', 0);
+
+
+
+
+#--. Create the adoptions table to track pet adoptions
+     This table stores which users have adopted which pets
+     and the status of each adoption (pending, approved, completed, rejected)
+
+CREATE TABLE IF NOT EXISTS adoptions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    pet_id INT NOT NULL,
+    adopter_id INT NOT NULL,
+    adoption_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('pending', 'approved', 'completed', 'rejected') DEFAULT 'pending',
+    notes TEXT,
+    
+    FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE,
+    FOREIGN KEY (adopter_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_adoption (pet_id, adopter_id),
+    INDEX idx_adopter (adopter_id),
+    INDEX idx_status (status)
+);
+

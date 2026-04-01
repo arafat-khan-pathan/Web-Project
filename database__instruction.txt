@@ -1,0 +1,216 @@
+PAWS & HEARTS - DATABASE INSTRUCTIONS (CODE-ALIGNED)
+
+Date: 2026-04-01
+Project folder: pet_addoption_system
+Database name used in code: paws_hearts
+
+IMPORTANT
+- These instructions are based on actual SQL usage in PHP files, not only the 3 SQL setup scripts.
+- This project uses additional tables/columns beyond setup_adoptions.sql, setup_messages.sql, and create_test_users.sql.
+
+==================================================
+1) REQUIREMENTS
+==================================================
+- MySQL 8+ (or MariaDB with compatible syntax)
+- phpMyAdmin (recommended) or MySQL CLI
+- XAMPP default credentials (used by the app):
+   host=localhost, user=root, password=""
+
+==================================================
+2) CREATE DATABASE
+==================================================
+Run:
+
+CREATE DATABASE IF NOT EXISTS paws_hearts
+   CHARACTER SET utf8mb4
+   COLLATE utf8mb4_unicode_ci;
+
+USE paws_hearts;
+
+==================================================
+3) CREATE FULL SCHEMA REQUIRED BY CODE
+==================================================
+Run this whole section before testing pages.
+
+-- USERS
+CREATE TABLE IF NOT EXISTS users (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      first_name VARCHAR(50) NOT NULL,
+      last_name VARCHAR(50) NOT NULL,
+      email VARCHAR(100) NOT NULL UNIQUE,
+      password VARCHAR(255) NOT NULL,
+      role ENUM('admin', 'adopter', 'shelter', 'guest') DEFAULT 'adopter',
+      profile_pic VARCHAR(255) NULL,
+      is_approve TINYINT(1) NOT NULL DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- PETS
+CREATE TABLE IF NOT EXISTS pets (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      adopter_id INT NULL,
+      name VARCHAR(100) NOT NULL,
+      age VARCHAR(50) NULL,
+      species VARCHAR(50) NULL,
+      breed VARCHAR(100) NULL,
+      size VARCHAR(50) NULL,
+      gender VARCHAR(20) NULL,
+      image_url TEXT NULL,
+      image_urrl TEXT NULL,
+      description TEXT NULL,
+      about TEXT NULL,
+      health_status VARCHAR(255) NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_pets_user (user_id),
+      INDEX idx_pets_species (species),
+      INDEX idx_pets_adopter (adopter_id),
+      CONSTRAINT fk_pets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      CONSTRAINT fk_pets_adopter FOREIGN KEY (adopter_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ADOPTIONS
+CREATE TABLE IF NOT EXISTS adoptions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      pet_id INT NOT NULL,
+      adopter_id INT NOT NULL,
+      adoption_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      status ENUM('pending', 'approved', 'completed', 'rejected') DEFAULT 'pending',
+      notes TEXT NULL,
+      UNIQUE KEY unique_adoption (pet_id, adopter_id),
+      INDEX idx_adopter (adopter_id),
+      INDEX idx_status (status),
+      CONSTRAINT fk_adoptions_pet FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE,
+      CONSTRAINT fk_adoptions_adopter FOREIGN KEY (adopter_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- MESSAGES
+CREATE TABLE IF NOT EXISTS messages (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      sender_id INT NOT NULL,
+      receiver_id INT NOT NULL,
+      message_text TEXT NOT NULL,
+      is_read BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_conversation (sender_id, receiver_id, created_at),
+      CONSTRAINT fk_messages_sender FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+      CONSTRAINT fk_messages_receiver FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- CATEGORIES (used in admin/admin.php)
+CREATE TABLE IF NOT EXISTS categories (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(100) NOT NULL UNIQUE,
+      description TEXT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ADOPTION REQUESTS (used in shelter/shelter_profile.php)
+CREATE TABLE IF NOT EXISTS adoption_requests (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      pet_id INT NOT NULL,
+      user_id INT NOT NULL,
+      request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+      notes TEXT NULL,
+      INDEX idx_adoption_requests_pet (pet_id),
+      INDEX idx_adoption_requests_user (user_id),
+      CONSTRAINT fk_adoption_requests_pet FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE,
+      CONSTRAINT fk_adoption_requests_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+==================================================
+4) IF DATABASE ALREADY EXISTS, PATCH MISSING COLUMNS
+==================================================
+If your DB was created from older scripts, run these safe upgrades:
+
+ALTER TABLE users
+   MODIFY COLUMN role ENUM('admin','adopter','shelter','guest') DEFAULT 'adopter';
+
+ALTER TABLE users
+   ADD COLUMN IF NOT EXISTS profile_pic VARCHAR(255) NULL,
+   ADD COLUMN IF NOT EXISTS is_approve TINYINT(1) NOT NULL DEFAULT 0;
+
+ALTER TABLE pets
+   ADD COLUMN IF NOT EXISTS adopter_id INT NULL,
+   ADD COLUMN IF NOT EXISTS image_url TEXT NULL,
+   ADD COLUMN IF NOT EXISTS image_urrl TEXT NULL,
+   ADD COLUMN IF NOT EXISTS description TEXT NULL,
+   ADD COLUMN IF NOT EXISTS about TEXT NULL,
+   ADD COLUMN IF NOT EXISTS health_status VARCHAR(255) NULL,
+   ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE adoptions
+   ADD COLUMN IF NOT EXISTS notes TEXT NULL;
+
+==================================================
+5) RUN PROVIDED SQL FILES (OPTIONAL/SEEDING)
+==================================================
+After full schema is ready, run these if you want sample data:
+
+1. setup_messages.sql
+2. setup_adoptions.sql
+3. create_test_users.sql (optional)
+
+Note:
+- setup_messages.sql sample login: shelter@test.com / password123, john@test.com / password123
+- create_test_users.sql may conflict with other test rows; run only if needed.
+
+==================================================
+6) ADD DEFAULT ADMIN (RECOMMENDED)
+==================================================
+INSERT INTO users (first_name, last_name, email, password, role, is_approve)
+VALUES ('System', 'Admin', 'admin@test.com', 'admin123', 'admin', 1)
+ON DUPLICATE KEY UPDATE role = VALUES(role);
+
+==================================================
+7) VERIFICATION QUERIES
+==================================================
+Run:
+
+SHOW TABLES;
+
+Expected tables:
+- users
+- pets
+- adoptions
+- messages
+- categories
+- adoption_requests
+
+Check columns quickly:
+
+SHOW COLUMNS FROM users;
+SHOW COLUMNS FROM pets;
+SHOW COLUMNS FROM adoptions;
+SHOW COLUMNS FROM messages;
+SHOW COLUMNS FROM categories;
+SHOW COLUMNS FROM adoption_requests;
+
+Check record counts:
+
+SELECT COUNT(*) AS users_count FROM users;
+SELECT COUNT(*) AS pets_count FROM pets;
+SELECT COUNT(*) AS adoptions_count FROM adoptions;
+SELECT COUNT(*) AS messages_count FROM messages;
+
+==================================================
+8) ROLE LOGIN ROUTING EXPECTED BY APP
+==================================================
+- admin -> admin/admin.php
+- adopter -> adopter/index.php (requires users.is_approve = 1)
+- shelter -> shelter/index.php
+- guest -> guest/index.php
+
+==================================================
+9) KNOWN COMPATIBILITY NOTE
+==================================================
+Some pages read pet image from image_urrl (typo) while other pages use image_url.
+To avoid broken images without changing code, keep BOTH columns in pets:
+- image_url
+- image_urrl
+
+==================================================
+DONE
+==================================================
+Database setup is complete when all six tables exist, required columns are present, and login/dashboard pages load without SQL errors.
