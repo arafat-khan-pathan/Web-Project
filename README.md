@@ -31,9 +31,8 @@ This project supports separate experiences for:
 
 Please follow the full database setup guide in:
 
-- **database__instruction.txt**
-<br>
-https://github.com/arafat-khan-pathan/Web-Project/blob/main/database__instruction.txt
+- **database__instruction.txt**<br>
+   https://github.com/arafat-khan-pathan/Web-Project/blob/main/database__instruction.txt
 
 This file includes:
 - Required MySQL setup
